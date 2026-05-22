@@ -1,63 +1,51 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"strings"
+	"os"
 )
 
+type ResetRequest struct {
+	ResetToken string `json:"reset_token"`
+	Password   string `json:"password"`
+	Conform    string `json:"conform"`
+}
+
 func (app *app) makeRequest(otp string) {
+	reqBody := ResetRequest{
+		ResetToken: otp,
+		Password:   "batmanstuff",
+		Conform:    "batmanstuff",
+	}
 
-	client := http.Client{}
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		log.Fatalf("failed to marshal json: %v", err)
+	}
 
-	jsonData := fmt.Sprintf(`{
-    "reset_token":"%s",
-    "password":"whatisthis",
-    "conform":"whatisthis"
-}`, otp)
+	req, err := http.NewRequest(app.method, app.url, bytes.NewReader(jsonData))
 
-	req, err := http.NewRequest(app.method, app.url, strings.NewReader(jsonData))
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		app.logger.Error(err.Error())
-		log.Fatal("Error server did not response", err)
-	}
-
-	res, err := client.Do(req)
-
-	if err != nil {
-		app.logger.Error(err.Error())
-		log.Fatal("Error server did not response", err)
-	}
-
-	defer res.Body.Close()
-	// io.ReadCloser interface  which has  Reader and Closer method defined
-
-	// io.ReadAll()
-	// and this takes Reader interface and the res.Body satisfies this as res.Body is ReadCloser interface which is defined like this
-	//
-	//type ReadCloser interface {
-	// Reader
-	// Closer
-	// }
-
-	data, err := io.ReadAll(res.Body)
-
-	if err != nil {
-		app.logger.Error(err.Error())
-
+		log.Print("Error server did not response", err)
 		return
 	}
 
-	fmt.Printf("Status: %d \n", res.StatusCode)
-	fmt.Println(string(data))
+	res, err := app.client.Do(req)
+	if err != nil {
+		app.logger.Error(err.Error())
+		log.Print("Error server did not response", err)
+		return
+	}
 
-	if res.StatusCode == 200 {
-
+	if res.StatusCode == app.stopHttpCode {
 		fmt.Printf("\nThe otp is %s", otp)
-		log.Fatal()
+		os.Exit(0)
 	}
 
 }
