@@ -53,3 +53,19 @@ go run ./cmd/internal \
 
 - Requests are sent with a JSON body containing the generated `token` value.
 - The current implementation also sets a fixed `Host` header and includes placeholder password fields in the request body.
+
+## Customize The Request
+
+If you want to use your own JSON structure, password values, or host name, update the request payload in [cmd/internal/request.go](cmd/internal/request.go).
+
+The current body is built like this:
+
+```json
+{
+  "token": "<otp>",
+  "newPassword": "somerandomepass",
+  "confirmNewPassword": "somerandomepass"
+}
+```
+
+You can replace those fields with your own JSON structure and set the `Host` header to match your target service.
